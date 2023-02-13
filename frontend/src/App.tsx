@@ -8,6 +8,7 @@ import {
 import reactLogo from "./assets/react.svg";
 import "./App.css";
 import SipKiller from "./sip/sipkiller";
+import styles from "./app.module.scss";
 function App() {
   const [sip, setSip] = useState<SipKiller | undefined>();
   const [details, updateDetails] = useReducer(
@@ -78,7 +79,7 @@ function App() {
   }, []);
   return (
     <div className="App">
-      <div>
+      <div className={styles.connect}>
         <label htmlFor="rtc">RTCaddress :</label>
         <input
           type="text"
