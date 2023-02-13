@@ -1,2 +1,3 @@
 # AgentDesktopSip
-agent desktop connection over sip RD
+
+agent desktop connection over sip Re
