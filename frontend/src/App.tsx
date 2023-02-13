@@ -49,12 +49,9 @@ function App() {
       call: "1004@52.172.94.114:5060",
     }
   );
-  const RTCaddress = useRef<undefined | any>(undefined);
-  const user = useRef<undefined | any>(undefined);
-  const password = useRef<undefined | any>(undefined);
-  const callAddress = useRef<any>(null);
+
   function connectSip() {
-    if (RTCaddress.current && user.current && password.current) {
+    if (details) {
       const sipTemp = new SipKiller(
         details.RTCaddress,
 
@@ -68,10 +65,11 @@ function App() {
     }
   }
   function call() {
-    if (callAddress.current) {
+    if (details.call) {
       sip?.call(details.call);
     }
   }
+
   useEffect(() => {
     return () => {
       sip?.kill();
@@ -79,12 +77,14 @@ function App() {
   }, []);
   return (
     <div className="App">
+      <div>
+        connection status : {sip?.isConnected ? "connected" : "not connected"}
+      </div>
       <div className={styles.connect}>
         <label htmlFor="rtc">RTCaddress :</label>
         <input
           type="text"
           placeholder="wss://stagingtelephony.saarthi.ai:8089/ws"
-          ref={RTCaddress}
           value={details.RTCaddress}
           onChange={(e) => {
             updateDetails({ type: "RTCaddress", payload: e.target.value });
@@ -94,7 +94,6 @@ function App() {
         <input
           type="text"
           placeholder="1000@52.172.94.114:5060"
-          ref={user}
           value={details.user}
           onChange={(e) => {
             updateDetails({ type: "user", payload: e.target.value });
@@ -104,7 +103,6 @@ function App() {
         <input
           type="text"
           placeholder="123456"
-          ref={password}
           value={details.password}
           onChange={(e) => {
             updateDetails({ type: "password", payload: e.target.value });
@@ -128,7 +126,6 @@ function App() {
           onChange={(e) => {
             updateDetails({ type: "callAddress", payload: e.target.value });
           }}
-          ref={callAddress}
         />
         <button onClick={call}>Call</button>
       </div>

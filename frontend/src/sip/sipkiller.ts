@@ -13,6 +13,7 @@ class SipKiller {
   private password: string;
   private coolPhone: jsSip.UA;
   public jsSoc: WebSocketInterface;
+  public isConnected: boolean;
   constructor(webrtc: string, uri: string, password: string) {
     this.webrtc = webrtc;
     this.password = password;
@@ -22,7 +23,7 @@ class SipKiller {
       sockets: [this.jsSoc],
       uri: this.uri,
       password: this.password,
-      // register_expires: 5000000,
+      register_expires: 60000, // 15hrs
       session_timers_refresh_method: "invite",
       //   session_timers_force_refresher:true,
     };
@@ -31,6 +32,7 @@ class SipKiller {
     this.coolPhone = new jsSip.UA(configuration);
 
     // this.coolPhone.ke
+    this.isConnected = false;
     this.coolPhone.on("registrationExpiring", (e) => {
       console.log("regestration expering");
     });
@@ -65,6 +67,7 @@ class SipKiller {
       /* Your code here */
       console.log("unregistered", e);
     });
+
     this.coolPhone.on("registrationFailed", function (e) {
       /* Your code here */
       console.log("registration failed", e);
@@ -73,10 +76,12 @@ class SipKiller {
   //WebSocket connection events//
   private onConnected(e: ConnectedEvent) {
     console.log("connected", e);
+    this.isConnected = true;
   }
   //WebSocket connection events//
   private onDisconnected(e: ConnectedEvent) {
     console.error("sip disconnected", e);
+    this.isConnected = false;
   }
   /**
    * New incoming or outgoing call event
