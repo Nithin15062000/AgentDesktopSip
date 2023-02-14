@@ -7,3 +7,11 @@
   margin: 10px;
   border-radius: 5px;
 }
+.connection_status {
+  span {
+    color: red;
+    &[data-success="true"] {
+      color: greenyellow;
+    }
+  }
+}

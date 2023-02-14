@@ -9,8 +9,57 @@ import reactLogo from "./assets/react.svg";
 import "./App.css";
 import SipKiller from "./sip/sipkiller";
 import styles from "./app.module.scss";
+interface connection_state {
+  connection_status: "disconnected" | "connected";
+  resistration_status: "unregistered" | "registered";
+}
+const initial_state: connection_state = {
+  connection_status: "disconnected",
+  resistration_status: "registered",
+};
+function connection_status_reducer(
+  state: connection_state,
+  action: {
+    type:
+      | "status/connected"
+      | "status/disconnected"
+      | "register"
+      | "unregister";
+  }
+): connection_state {
+  switch (action.type) {
+    case "status/connected": {
+      return { ...state, connection_status: "connected" };
+    }
+    case "status/disconnected":
+      return {
+        ...state,
+        connection_status: "disconnected",
+        resistration_status: "unregistered",
+      };
+    case "register": {
+      return {
+        ...state,
+        resistration_status: "registered",
+      };
+    }
+    case "unregister": {
+      return {
+        ...state,
+        resistration_status: "unregistered",
+      };
+    }
+    default: {
+      return state;
+    }
+  }
+}
 function App() {
   const [sip, setSip] = useState<SipKiller | undefined>();
+  const [connectionState, updateConnection] = useReducer(
+    connection_status_reducer,
+    initial_state
+  );
   const [details, updateDetails] = useReducer(
     (
       prev: {
@@ -50,13 +99,27 @@ function App() {
     }
   );
 
+  function eventConnected() {}
   function connectSip() {
     if (details) {
       const sipTemp = new SipKiller(
         details.RTCaddress,
-
         details.user,
-        details.password
+        details.password,
+        {
+          eventConnected: () => {
+            console.log(" connected call event");
+            updateConnection({
+              type: "status/connected",
+            });
+          },
+          eventDisconnected: () => {
+            console.log(" disconnected call event");
+            updateConnection({
+              type: "status/disconnected",
+            });
+          },
+        }
       );
       sipTemp.start();
       setSip(sipTemp);
@@ -77,8 +140,12 @@ function App() {
   }, []);
   return (
     <div className="App">
-      <div>
-        connection status : {sip?.isConnected ? "connected" : "not connected"}
+      <div className={styles.connection_status}>
+        connection status :{" "}
+        <span data-success={connectionState.connection_status === "connected"}>
+          {" "}
+          {connectionState.connection_status}
+        </span>
       </div>
       <div className={styles.connect}>
         <label htmlFor="rtc">RTCaddress :</label>
@@ -127,7 +194,22 @@ function App() {
             updateDetails({ type: "callAddress", payload: e.target.value });
           }}
         />
-        <button onClick={call}>Call</button>
+        <button
+          disabled={
+            connectionState.connection_status === "disconnected" ||
+            connectionState.resistration_status === "unregistered"
+          }
+          onClick={call}
+        >
+          Call
+        </button>
+        <button
+          onClick={() => {
+            sip?.endCall();
+          }}
+        >
+          End Call
+        </button>
       </div>
     </div>
   );
