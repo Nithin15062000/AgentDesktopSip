@@ -32,6 +32,10 @@
   }
 }
 
+button {
+  margin: 5px;
+}
+
 .card {
   padding: 2em;
 }

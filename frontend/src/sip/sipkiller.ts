@@ -10,8 +10,10 @@ import { AnswerOptions } from "jssip/lib/RTCSession";
  */
 
 interface events {
-  eventConnected: CallableFunction;
-  eventDisconnected: CallableFunction;
+  eventRegistered: CallableFunction;
+  eventUnregistered: CallableFunction;
+  eventOnCallReceive: CallableFunction;
+  eventOnCallDisconnected: CallableFunction;
 }
 class SipKiller {
   private webrtc: string;
@@ -50,20 +52,24 @@ class SipKiller {
     });
     this.coolPhone.on("disconnected", (e) => {
       this.onDisconnected(e);
+      this.events.eventUnregistered();
     });
     this.coolPhone.on("newRTCSession", (e: IncomingRTCSessionEvent) => {
       this.newRTCSession(e);
     });
     this.coolPhone.on("registered", (e) => {
       console.log("registered", e);
+      this.events.eventRegistered();
     });
-    this.coolPhone.on("unregistered", function (e) {
+    this.coolPhone.on("unregistered", (e) => {
       /* Your code here */
       console.log("unregistered", e);
+      this.events.eventUnregistered();
     });
 
-    this.coolPhone.on("registrationFailed", function (e) {
+    this.coolPhone.on("registrationFailed", (e) => {
       /* Your code here */
+      this.events.eventUnregistered();
       console.log("registration failed", e);
     });
   }
@@ -71,13 +77,12 @@ class SipKiller {
   private onConnected(e: ConnectedEvent) {
     console.log("connected", e);
     this.isConnected = true;
-    this.events.eventConnected();
   }
   //WebSocket connection events//
   private onDisconnected(e: ConnectedEvent) {
     console.error("sip disconnected", e);
     this.isConnected = false;
-    this.events.eventDisconnected();
+    this.events.eventUnregistered();
   }
   /**
    * New incoming or outgoing call event
@@ -88,6 +93,9 @@ class SipKiller {
     this.session = e;
     if (e.originator == "remote") {
       //todo
+
+      console.log("incomming call");
+      this.events.eventOnCallReceive();
       // session_incoming.answer(options);
     }
     e.session.connection.addEventListener("addstream", function (k: any) {
@@ -96,6 +104,9 @@ class SipKiller {
       const remoteAudio = document.createElement("audio");
       remoteAudio.srcObject = k.stream as MediaStream;
       remoteAudio.play();
+    });
+    e.session.on("ended", () => {
+      this.events.eventOnCallDisconnected();
     });
     e.session.on("peerconnection", function (data) {
       data.peerconnection.addEventListener("addstream", function (k: any) {
@@ -133,7 +144,10 @@ class SipKiller {
     };
     this.coolPhone.call(address, options);
   }
-  public receiveCall() {
+  /**
+   *  accepts the incomming call
+   */
+  public acceptCall() {
     let options: AnswerOptions = {
       mediaConstraints: {
         audio: true,
@@ -141,11 +155,42 @@ class SipKiller {
       },
     };
     this.session?.session.answer(options);
+    //todo
   }
+  /**
+   * end the call (both incomming and outgoing)
+   */
   public endCall() {
     this.session?.session.terminate();
     this.session = undefined;
   }
+  /**
+   * hold the call
+   */
+  public hold() {
+    this.session?.session.hold();
+  }
+  /**
+   * unhold the call
+   */
+  public unhold() {
+    this.session?.session.unhold();
+  }
+  /**
+   * mute the call
+   */
+  public mute() {
+    this.session?.session.mute();
+  }
+  /**
+   * unmute the call
+   */
+  public unmute() {
+    this.session?.session.unmute();
+  }
+  /**
+   * the connection of webrtc (cleanup)
+   */
   public kill() {
     this.jsSoc.disconnect();
   }

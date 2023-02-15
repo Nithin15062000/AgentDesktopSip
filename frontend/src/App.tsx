@@ -1,42 +1,29 @@
-import {
-  MutableRefObject,
-  useEffect,
-  useReducer,
-  useRef,
-  useState,
-} from "react";
-import reactLogo from "./assets/react.svg";
+import { useEffect, useReducer, useState } from "react";
+
 import "./App.css";
 import SipKiller from "./sip/sipkiller";
 import styles from "./app.module.scss";
 interface connection_state {
-  connection_status: "disconnected" | "connected";
   resistration_status: "unregistered" | "registered";
+  call_status: "incomming" | "outgoing" | "on_call" | "call_ended" | undefined;
 }
 const initial_state: connection_state = {
-  connection_status: "disconnected",
-  resistration_status: "registered",
+  resistration_status: "unregistered",
+  call_status: undefined,
 };
 function connection_status_reducer(
   state: connection_state,
   action: {
     type:
-      | "status/connected"
-      | "status/disconnected"
       | "register"
-      | "unregister";
+      | "unregister"
+      | "call/incomming"
+      | "call/outgoing"
+      | "call/connected"
+      | "call/ended";
   }
 ): connection_state {
   switch (action.type) {
-    case "status/connected": {
-      return { ...state, connection_status: "connected" };
-    }
-    case "status/disconnected":
-      return {
-        ...state,
-        connection_status: "disconnected",
-        resistration_status: "unregistered",
-      };
     case "register": {
       return {
         ...state,
@@ -47,6 +34,30 @@ function connection_status_reducer(
       return {
         ...state,
         resistration_status: "unregistered",
+      };
+    }
+    case "call/incomming": {
+      return {
+        ...state,
+        call_status: "incomming",
+      };
+    }
+    case "call/outgoing": {
+      return {
+        ...state,
+        call_status: "outgoing",
+      };
+    }
+    case "call/connected": {
+      return {
+        ...state,
+        call_status: "on_call",
+      };
+    }
+    case "call/ended": {
+      return {
+        ...state,
+        call_status: "call_ended",
       };
     }
     default: {
@@ -107,17 +118,26 @@ function App() {
         details.user,
         details.password,
         {
-          eventConnected: () => {
+          eventRegistered: () => {
             console.log(" connected call event");
             updateConnection({
-              type: "status/connected",
+              type: "register",
             });
           },
-          eventDisconnected: () => {
+          eventUnregistered: () => {
             console.log(" disconnected call event");
             updateConnection({
-              type: "status/disconnected",
+              type: "unregister",
             });
+          },
+          eventOnCallReceive: () => {
+            console.log("call receiving");
+            alert("call receiving");
+            //todo
+          },
+          eventOnCallDisconnected: () => {
+            console.log("call disconnected");
+            alert("call disconnected");
           },
         }
       );
@@ -142,9 +162,11 @@ function App() {
     <div className="App">
       <div className={styles.connection_status}>
         connection status :{" "}
-        <span data-success={connectionState.connection_status === "connected"}>
+        <span
+          data-success={connectionState.resistration_status === "registered"}
+        >
           {" "}
-          {connectionState.connection_status}
+          {connectionState.resistration_status}
         </span>
       </div>
       <div className={styles.connect}>
@@ -183,6 +205,13 @@ function App() {
           {" "}
           connect
         </button>
+        <button
+          onClick={() => {
+            sip?.kill();
+          }}
+        >
+          disconnect
+        </button>
       </div>
       <div>
         <label htmlFor="call"> call :</label>
@@ -195,20 +224,58 @@ function App() {
           }}
         />
         <button
-          disabled={
-            connectionState.connection_status === "disconnected" ||
-            connectionState.resistration_status === "unregistered"
-          }
+          disabled={connectionState.resistration_status === "unregistered"}
           onClick={call}
         >
           Call
         </button>
+        <div>
+          <button
+            onClick={() => {
+              sip?.endCall();
+            }}
+          >
+            End Call
+          </button>
+          <button
+            onClick={() => {
+              sip?.mute();
+            }}
+          >
+            mute
+          </button>
+          <button
+            onClick={() => {
+              sip?.unmute();
+            }}
+          >
+            unmute
+          </button>
+          <button
+            onClick={() => {
+              sip?.hold();
+            }}
+          >
+            hold
+          </button>
+          <button
+            onClick={() => {
+              sip?.unhold();
+            }}
+          >
+            unhold
+          </button>
+        </div>
+      </div>
+      <div>
+        {" "}
+        receive call event TODO!
         <button
           onClick={() => {
-            sip?.endCall();
+            sip?.acceptCall();
           }}
         >
-          End Call
+          Accept call
         </button>
       </div>
     </div>
