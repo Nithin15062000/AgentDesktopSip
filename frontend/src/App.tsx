@@ -208,6 +208,7 @@ function App() {
         <button
           onClick={() => {
             sip?.kill();
+            console.log(sip);
           }}
         >
           disconnect

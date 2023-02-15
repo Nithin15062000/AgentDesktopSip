@@ -20,8 +20,13 @@ class SipKiller {
   private uri: string;
   private password: string;
   private coolPhone: jsSip.UA;
-  public jsSoc: WebSocketInterface;
-  public isConnected: boolean;
+  private jsSoc: WebSocketInterface;
+  public stream:
+    | {
+        incomming: MediaStream;
+        outgoing: MediaStream;
+      }
+    | undefined;
   private events: events;
   private session: IncomingRTCSessionEvent | undefined;
   constructor(webrtc: string, uri: string, password: string, events: events) {
@@ -43,7 +48,7 @@ class SipKiller {
     this.coolPhone = new jsSip.UA(configuration);
 
     // this.coolPhone.ke
-    this.isConnected = false;
+
     this.coolPhone.on("registrationExpiring", (e) => {
       console.log("regestration expering");
     });
@@ -76,12 +81,10 @@ class SipKiller {
   //WebSocket connection events//
   private onConnected(e: ConnectedEvent) {
     console.log("connected", e);
-    this.isConnected = true;
   }
   //WebSocket connection events//
   private onDisconnected(e: ConnectedEvent) {
     console.error("sip disconnected", e);
-    this.isConnected = false;
     this.events.eventUnregistered();
   }
   /**
@@ -108,10 +111,13 @@ class SipKiller {
     e.session.on("ended", () => {
       this.events.eventOnCallDisconnected();
     });
-    e.session.on("peerconnection", function (data) {
-      data.peerconnection.addEventListener("addstream", function (k: any) {
+    e.session.on("peerconnection", (data) => {
+      data.peerconnection.addEventListener("addstream", (k: any) => {
         // set remote audio stream
         console.log(k, "peerconnection");
+        if (this.stream) {
+          this.stream.incomming = k.stream;
+        }
         const remoteAudio = document.createElement("audio");
         remoteAudio.src = window.URL.createObjectURL(k.stream);
         remoteAudio.play();
@@ -148,13 +154,22 @@ class SipKiller {
    *  accepts the incomming call
    */
   public acceptCall() {
-    let options: AnswerOptions = {
-      mediaConstraints: {
-        audio: true,
-        video: false,
-      },
-    };
-    this.session?.session.answer(options);
+    navigator.mediaDevices
+      .getUserMedia({ audio: true, video: false })
+      .then((stream) => {
+        let options: AnswerOptions = {
+          mediaConstraints: {
+            audio: true,
+            video: false,
+          },
+          mediaStream: stream,
+        };
+        if (this.stream) {
+          this.stream.outgoing = stream;
+        }
+        this.session?.session.answer(options);
+      });
+
     //todo
   }
   /**
@@ -192,6 +207,7 @@ class SipKiller {
    * the connection of webrtc (cleanup)
    */
   public kill() {
+    this.coolPhone.unregister();
     this.jsSoc.disconnect();
   }
 }
