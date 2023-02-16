@@ -132,12 +132,12 @@ function App() {
           },
           eventOnCallReceive: () => {
             console.log("call receiving");
-            alert("call receiving");
+            // alert("call receiving");
             //todo
           },
           eventOnCallDisconnected: () => {
             console.log("call disconnected");
-            alert("call disconnected");
+            // alert("call disconnected");
           },
         }
       );
@@ -228,7 +228,7 @@ function App() {
           disabled={connectionState.resistration_status === "unregistered"}
           onClick={call}
         >
-          Call
+          Call📞
         </button>
         <div>
           <button
@@ -236,28 +236,28 @@ function App() {
               sip?.endCall();
             }}
           >
-            End Call
+            End Call❌
           </button>
           <button
             onClick={() => {
               sip?.mute();
             }}
           >
-            mute
+            mute🙊
           </button>
           <button
             onClick={() => {
               sip?.unmute();
             }}
           >
-            unmute
+            unmute🔊
           </button>
           <button
             onClick={() => {
               sip?.hold();
             }}
           >
-            hold
+            hold🙈🙉🙊
           </button>
           <button
             onClick={() => {
@@ -278,6 +278,14 @@ function App() {
         >
           Accept call
         </button>
+      </div>
+      <div className={styles.audio_player}>
+        incomming call
+        <audio id="incomming_call" src="" controls></audio>
+      </div>
+      <div className={styles.audio_player}>
+        outgoing call
+        <audio id="outgoing_call" src="" controls></audio>
       </div>
     </div>
   );

@@ -15,18 +15,25 @@ interface events {
   eventOnCallReceive: CallableFunction;
   eventOnCallDisconnected: CallableFunction;
 }
+interface AudioRecorder {
+  stream: undefined | MediaStream;
+  recorder: undefined | MediaRecorder;
+  chunks: any[];
+}
 class SipKiller {
   private webrtc: string;
   private uri: string;
   private password: string;
   private coolPhone: jsSip.UA;
   private jsSoc: WebSocketInterface;
-  public stream:
-    | {
-        incomming: MediaStream;
-        outgoing: MediaStream;
-      }
-    | undefined;
+  public stream: {
+    incomming: AudioRecorder;
+
+    outgoing: AudioRecorder;
+  } = {
+    incomming: { stream: undefined, recorder: undefined, chunks: [] },
+    outgoing: { stream: undefined, recorder: undefined, chunks: [] },
+  };
   private events: events;
   private session: IncomingRTCSessionEvent | undefined;
   constructor(webrtc: string, uri: string, password: string, events: events) {
@@ -43,7 +50,7 @@ class SipKiller {
       session_timers_refresh_method: "invite",
       //   session_timers_force_refresher:true,
     };
-    console.log("init");
+    // console.log("init");
     // this.onConnected = this.onConnected.bind(this);
     this.coolPhone = new jsSip.UA(configuration);
 
@@ -92,7 +99,7 @@ class SipKiller {
    * @param e
    */
   private newRTCSession(e: IncomingRTCSessionEvent) {
-    console.log("callevent", e);
+    // console.log("callevent", e);
     this.session = e;
     if (e.originator == "remote") {
       //todo
@@ -101,23 +108,53 @@ class SipKiller {
       this.events.eventOnCallReceive();
       // session_incoming.answer(options);
     }
-    e.session.connection.addEventListener("addstream", function (k: any) {
+    e.session.connection.addEventListener("addstream", (k: any) => {
       // set remote audio stream
-      console.log(k, "addstream");
+      // console.log(k, "addstream");
+
       const remoteAudio = document.createElement("audio");
       remoteAudio.srcObject = k.stream as MediaStream;
       remoteAudio.play();
+      // alert("peer connection");
+
+      this.stream.incomming.stream = k.stream;
+      this.stream.incomming.recorder = new MediaRecorder(k.stream);
+      this.stream.incomming.recorder.start();
     });
-    e.session.on("ended", () => {
+    e.session.on("accepted", () => {
+      // alert("call accepted");
+    });
+    e.session.on("ended", async () => {
+      this.stream.incomming.recorder?.stop();
+      this.stream.outgoing.recorder?.stop();
+      if (this.stream.incomming.recorder) {
+        this.stream.incomming.recorder.ondataavailable = (ev) => {
+          this.setAudio(ev.data, "incomming_call");
+        };
+      }
+      if (this.stream.outgoing.recorder) {
+        this.stream.outgoing.recorder.ondataavailable = (ev) => {
+          this.setAudio(ev.data, "outgoing_call");
+        };
+      }
+      // this.stream = { incomming: undefined, outgoing: undefined };
       this.events.eventOnCallDisconnected();
     });
+
     e.session.on("peerconnection", (data) => {
       data.peerconnection.addEventListener("addstream", (k: any) => {
         // set remote audio stream
-        console.log(k, "peerconnection");
-        if (this.stream) {
-          this.stream.incomming = k.stream;
-        }
+
+        // console.log(k, "peerconnection");
+        // alert("peer connection");
+
+        this.stream.incomming.stream = k.stream;
+        this.stream.incomming.recorder = new MediaRecorder(k.stream);
+        this.stream.incomming.recorder.start();
+        // this.stream.incomming.recorder.ondataavailable = (ev) => {
+        //   this.stream.incomming.chunks.push(ev.data);
+        // };
+
         const remoteAudio = document.createElement("audio");
         remoteAudio.src = window.URL.createObjectURL(k.stream);
         remoteAudio.play();
@@ -143,12 +180,40 @@ class SipKiller {
         console.log("call confirmed", e);
       },
     };
+    navigator.mediaDevices
+      .getUserMedia({ audio: true, video: false })
+      .then((stream) => {
+        const options = {
+          eventHandlers: eventHandlers,
+          // mediaConstraints: { audio: true, video: false },
+          mediaStream: stream,
+        };
 
-    const options = {
-      eventHandlers: eventHandlers,
-      mediaConstraints: { audio: true, video: false },
-    };
-    this.coolPhone.call(address, options);
+        this.stream.outgoing.stream = stream;
+        this.stream.outgoing.recorder = new MediaRecorder(stream);
+        this.stream.outgoing.recorder.start();
+        // this.stream.outgoing.recorder.ondataavailable = (e) => {
+        //   this.stream.outgoing.chunks.push(e.data);
+        //   console.log("chunnnk", e.data);
+        // };
+        this.coolPhone.call(address, options);
+      });
+  }
+  /**
+   * this is to record audio files
+   * @param stream t
+   */
+  private setAudio(blob: Blob, element: string) {
+    // const bloburl = URL.createObjectURL(
+    //   new Blob(blob, {
+    //     type: "audio/ogg; codecs=opus",
+    //   })
+    // );
+    console.log(blob, element);
+    const bloburl = URL.createObjectURL(blob);
+
+    let audiotag = document.getElementById(element) as HTMLAudioElement;
+    audiotag.src = bloburl;
   }
   /**
    *  accepts the incomming call
@@ -164,9 +229,13 @@ class SipKiller {
           },
           mediaStream: stream,
         };
-        if (this.stream) {
-          this.stream.outgoing = stream;
-        }
+
+        this.stream.outgoing.stream = stream;
+        this.stream.outgoing.recorder = new MediaRecorder(stream);
+        this.stream.outgoing.recorder.start();
+        // this.stream.outgoing.recorder.ondataavailable = (e) => {
+        //   this.stream.outgoing.chunks.push(e.data);
+        // };
         this.session?.session.answer(options);
       });
 
