@@ -1,6 +1,12 @@
 import jsSip, { WebSocketInterface } from "jssip";
-import { ConnectedEvent, IncomingRTCSessionEvent } from "jssip/lib/UA";
+import {
+  ConnectedEvent,
+  IncomingRTCSessionEvent,
+  UAConfiguration,
+} from "jssip/lib/UA";
 import { AnswerOptions } from "jssip/lib/RTCSession";
+import callConfig from "../call.config";
+import { sipConfig } from "../call.config";
 /**
  * username = 1000
  *  password = 1000
@@ -20,12 +26,13 @@ interface AudioRecorder {
   recorder: undefined | MediaRecorder;
   chunks: any[];
 }
-class SipKiller {
+class ಎಸ್ಐಪಿ {
   private webrtc: string;
   private uri: string;
   private password: string;
   private coolPhone: jsSip.UA;
   private jsSoc: WebSocketInterface;
+
   public stream: {
     incomming: AudioRecorder;
 
@@ -41,13 +48,21 @@ class SipKiller {
     this.password = password;
     this.uri = uri;
     this.jsSoc = new jsSip.WebSocketInterface(this.webrtc);
+    // this.jsSoc.via_transport = "WSS";
     this.events = events;
-    const configuration = {
+    const configuration: UAConfiguration = {
+      ...sipConfig,
       sockets: [this.jsSoc],
       uri: this.uri,
       password: this.password,
-      register_expires: 60000, // 15hrs
-      session_timers_refresh_method: "invite",
+      // authorization_user: callConfig.authorization_user,
+      // register_expires: 360, // 15hrs
+      // // session_timers_refresh_method: "invite",
+      // use_preloaded_route: true,
+      // contact_uri: "",
+      // display_name: callConfig.displayname,
+      // realm: callConfig.realm,
+
       //   session_timers_force_refresher:true,
     };
     // console.log("init");
@@ -103,11 +118,12 @@ class SipKiller {
     this.session = e;
     if (e.originator == "remote") {
       //todo
-
-      console.log("incomming call");
+      alert("incomming call");
+      console.log("incomming call", e);
       this.events.eventOnCallReceive();
       // session_incoming.answer(options);
     }
+    // this is incomming stream
     e.session.connection.addEventListener("addstream", (k: any) => {
       // set remote audio stream
       // console.log(k, "addstream");
@@ -127,6 +143,7 @@ class SipKiller {
     e.session.on("ended", async () => {
       this.stream.incomming.recorder?.stop();
       this.stream.outgoing.recorder?.stop();
+
       if (this.stream.incomming.recorder) {
         this.stream.incomming.recorder.ondataavailable = (ev) => {
           this.setAudio(ev.data, "incomming_call");
@@ -139,6 +156,8 @@ class SipKiller {
       }
       // this.stream = { incomming: undefined, outgoing: undefined };
       this.events.eventOnCallDisconnected();
+      this.stream.incomming.stream?.getTracks().forEach((e) => e.stop());
+      this.stream.outgoing.stream?.getTracks().forEach((e) => e.stop());
     });
 
     e.session.on("peerconnection", (data) => {
@@ -280,4 +299,4 @@ class SipKiller {
     this.jsSoc.disconnect();
   }
 }
-export default SipKiller;
+export default ಎಸ್ಐಪಿ;

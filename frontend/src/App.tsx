@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState } from "react";
-
+import callConfig from "./call.config";
 import "./App.css";
 import SipKiller from "./sip/sipkiller";
 import styles from "./app.module.scss";
@@ -95,7 +95,7 @@ function App() {
           return { ...prev, password: action.payload };
         }
         case "user": {
-          return { ...prev, call: action.payload };
+          return { ...prev, user: action.payload };
         }
         default: {
           return prev;
@@ -103,10 +103,10 @@ function App() {
       }
     },
     {
-      RTCaddress: "wss://stagingtelephony.saarthi.ai:8089/ws",
-      user: "1000@52.172.94.114:5060",
-      password: "123456",
-      call: "1004@52.172.94.114:5060",
+      RTCaddress: callConfig.RTCaddress,
+      user: callConfig.user,
+      password: callConfig.password,
+      call: callConfig.call,
     }
   );
 
@@ -132,6 +132,7 @@ function App() {
           },
           eventOnCallReceive: () => {
             console.log("call receiving");
+            // sip?.acceptCall();
             // alert("call receiving");
             //todo
           },
@@ -173,7 +174,6 @@ function App() {
         <label htmlFor="rtc">RTCaddress :</label>
         <input
           type="text"
-          placeholder="wss://stagingtelephony.saarthi.ai:8089/ws"
           value={details.RTCaddress}
           onChange={(e) => {
             updateDetails({ type: "RTCaddress", payload: e.target.value });
@@ -182,7 +182,6 @@ function App() {
         <label htmlFor="rtc">user :</label>
         <input
           type="text"
-          placeholder="1000@52.172.94.114:5060"
           value={details.user}
           onChange={(e) => {
             updateDetails({ type: "user", payload: e.target.value });
@@ -191,7 +190,6 @@ function App() {
         <label htmlFor="password">password :</label>
         <input
           type="text"
-          placeholder="123456"
           value={details.password}
           onChange={(e) => {
             updateDetails({ type: "password", payload: e.target.value });
@@ -205,20 +203,11 @@ function App() {
           {" "}
           connect
         </button>
-        <button
-          onClick={() => {
-            sip?.kill();
-            console.log(sip);
-          }}
-        >
-          disconnect
-        </button>
       </div>
       <div>
         <label htmlFor="call"> call :</label>
         <input
           type="text"
-          placeholder="1004@52.172.94.114:5060"
           value={details.call}
           onChange={(e) => {
             updateDetails({ type: "callAddress", payload: e.target.value });
@@ -280,11 +269,11 @@ function App() {
         </button>
       </div>
       <div className={styles.audio_player}>
-        incomming call
+        Incomming Call ↙️
         <audio id="incomming_call" src="" controls></audio>
       </div>
       <div className={styles.audio_player}>
-        outgoing call
+        Outgoing Call ↗️
         <audio id="outgoing_call" src="" controls></audio>
       </div>
     </div>
