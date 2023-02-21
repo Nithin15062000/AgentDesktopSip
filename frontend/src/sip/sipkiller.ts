@@ -5,8 +5,8 @@ import {
   UAConfiguration,
 } from "jssip/lib/UA";
 import { AnswerOptions } from "jssip/lib/RTCSession";
-import callConfig from "../call.config";
-import { sipConfig } from "../call.config";
+import callConfig from "../../call.config";
+import { sipConfig } from "../../call.config";
 /**
  * username = 1000
  *  password = 1000

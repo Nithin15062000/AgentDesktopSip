@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useState } from "react";
-import callConfig from "./call.config";
+import callConfig from "../call.config";
 import "./App.css";
 import SipKiller from "./sip/sipkiller";
 import styles from "./app.module.scss";
